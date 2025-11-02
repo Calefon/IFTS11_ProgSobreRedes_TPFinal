@@ -79,7 +79,16 @@ namespace TPHttpServer
                 // Archivo no encontrado
                 response.statusCode = 404;
                 response.contentType = "text/html";
-                string notFoundMessage ="NOT FOUND";
+                string notFoundMessage =
+                "<!DOCTYPE>" +
+            "<html>" +
+            "  <head>" +
+            "    <title>Server 404 - Not Found</title>" +
+            "  </head>" +
+            "  <body>" +
+            "    <h1>Resource not found in server</h1>" +
+            "  </body>" +
+            "</html>";
 
                 byte[] htmlBytes = Encoding.UTF8.GetBytes(notFoundMessage);
                 response.contentLength = htmlBytes.Length;
