@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
@@ -14,6 +15,8 @@ namespace TPHttpServer
         public static string host = "";
         public static int port = -1;
         public static string serve_folder = "";
+
+        private static Logger logger;
 
         public static async void GetRequestHandler(HttpReq request, Socket handler)
         {
@@ -58,8 +61,12 @@ namespace TPHttpServer
                 response.contentType = contentType;
                 response.statusCode = 200;
 
-                // Leemos el archivo y lo enviamos
+                // Leemos el archivo
                 byte[] fileBytes = File.ReadAllBytes(filePath);
+
+                // Lo comprimimos
+                fileBytes = Compressor.Compress(fileBytes);
+
                 response.contentLength = fileBytes.Length;
 
                 byte[] headerBytes = Encoding.UTF8.GetBytes(response.GetResponseHeaders());
@@ -91,6 +98,9 @@ namespace TPHttpServer
             "</html>";
 
                 byte[] htmlBytes = Encoding.UTF8.GetBytes(notFoundMessage);
+
+                htmlBytes = Compressor.Compress(htmlBytes);
+
                 response.contentLength = htmlBytes.Length;
                 byte[] headerBytes = Encoding.UTF8.GetBytes(response.GetResponseHeaders());
 
@@ -132,18 +142,22 @@ namespace TPHttpServer
                 if (bytesReceived > 0)
                 {
                     HttpReq req = HttpUtils.parseHttpRequest(rawRequest);
+                    logger.LogWrite($"Request received:\r\n{rawRequest}\r\nQuery params:\n{req.httpQuery}");
+                    
                     Console.WriteLine("Request received:\nMETHOD: {0}\nURI:{1}\nHTTP VERSION:{2}", req.httpMethod, req.httpUri, req.httpVersion);
-
                     switch (req.httpMethod)
                     {
                         case "GET":
                             //Comportamiento GET
-                            Console.WriteLine("GET RECEIVED");
+
                             Action GetAction = new Action(() => GetRequestHandler(req,handler));
                             Task.Run(GetAction);
 
                             break;
                         case "POST":
+                            //Comportamiento POST
+                            Console.WriteLine("POST RECEIVED");
+                            //POST ya logeado con LogWrite del request.
                             break;
                         default:
                             break;
@@ -160,6 +174,7 @@ namespace TPHttpServer
             port = env.GetPort();
             serve_folder = env.GetServePath();
 
+            logger = Logger.LoggerInstance;
 
             // Arrancamos el server
             Task server = StartServer();

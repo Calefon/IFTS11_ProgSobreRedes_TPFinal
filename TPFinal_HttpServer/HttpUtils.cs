@@ -19,7 +19,6 @@ namespace TPHttpServer
                     string[] parts = requestLine.Split(' ');
                     if (parts.Length >= 3)
                     {
-
                         httpMethod = parts[0];
 
                         httpReqUri = parts[1];
@@ -28,8 +27,16 @@ namespace TPHttpServer
                     }
                 }
             }
-
-            return new HttpReq(httpMethod, httpReqUri, httpVersion);
+            string[] httpUriArr = httpReqUri.Split('?', 2);
+            if(httpUriArr.Length > 1)
+            {
+                return new HttpReq(httpMethod, httpUriArr[0], httpVersion, httpUriArr[1]);
+            }
+            else
+            {
+                return new HttpReq(httpMethod, httpUriArr[0], httpVersion, "");
+            }
+            
         }
         
         
@@ -40,11 +47,13 @@ namespace TPHttpServer
         public string httpMethod { get; }
         public string httpUri { get; }
         public string httpVersion { get; }
-        public HttpReq(string method, string uri, string version)
+        public string httpQuery { get; }
+        public HttpReq(string method, string uri, string version, string query)
         {
             httpMethod = method;
             httpUri = uri;
             httpVersion = version;
+            httpQuery = query.TrimStart('?').Replace('&','\n');   
         }
 
     }
@@ -56,6 +65,8 @@ namespace TPHttpServer
         public static string httpOk = "HTTP/1.1 200 OK";
         public static string http404 = "HTTP/1.1 404 Not Found";
         public int contentLength = 0;
+
+        public string contentEncoding = "gzip";
 
         public string GetResponseHeaders()
         {
@@ -69,7 +80,7 @@ namespace TPHttpServer
                     firstLine = http404;
                     break;
             }
-            return $"{firstLine}\r\nContent-Length: {contentLength}\r\nContent-Type: {contentType}\r\n\r\n";
+            return $"{firstLine}\r\nContent-Length: {contentLength}\r\nContent-Type: {contentType}\r\nContent-Encoding: {contentEncoding}\r\n\r\n";
         }
     }
 }
