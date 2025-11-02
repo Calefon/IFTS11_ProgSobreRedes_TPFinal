@@ -5,8 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using GetServerEnv;
-using System.Net.Cache;
-using Microsoft.VisualBasic;
+
 
 namespace TPHttpServer
 {
@@ -18,6 +17,8 @@ namespace TPHttpServer
 
         public static async void GetRequestHandler(HttpReq request, Socket handler)
         {
+            HttpResp response = new HttpResp();
+
             //Conseguimos el filepath
             string filePath = Path.Combine(serve_folder, request.httpUri.TrimStart('/'));
 
@@ -26,12 +27,12 @@ namespace TPHttpServer
             {
                 filePath = Path.Combine(serve_folder, "index.html");
             }
-            HttpResp response = new HttpResp();
 
 
             // Check si el archivo existe
             if (File.Exists(filePath))
             {
+                
                 string fileExtension = Path.GetExtension(filePath).ToLower();
                 string contentType;
 
@@ -59,6 +60,8 @@ namespace TPHttpServer
 
                 // Leemos el archivo y lo enviamos
                 byte[] fileBytes = File.ReadAllBytes(filePath);
+                response.contentLength = fileBytes.Length;
+
                 byte[] headerBytes = Encoding.UTF8.GetBytes(response.GetResponseHeaders());
 
                 //Armamos el buffer a mandar
@@ -67,35 +70,29 @@ namespace TPHttpServer
                 System.Buffer.BlockCopy(fileBytes, 0, bytesToSend, headerBytes.Length, fileBytes.Length);
 
                 await handler.SendAsync(bytesToSend, 0);
+                handler.Close();
+               
             }
             else
             {
+
                 // Archivo no encontrado
                 response.statusCode = 404;
-                string notFoundMessage =
-                @"<!DOCTYPE html>                      
-                <html lang=""es"">
-                <head>
-                    <meta charset=""UTF-8"">
-                </head>
-                    <body>
-                        <header>
-                            <h1>Bienvenido a mi página web</h1>
-                        </header>
-                        <main>
-                            <h1>ERROR 404 - NO ENCONTRADO</h1>
-                        </main>
-    
-                    </body>
-                </html>";
+                response.contentType = "text/html";
+                string notFoundMessage ="NOT FOUND";
 
-                byte[] buffer = Encoding.UTF8.GetBytes(notFoundMessage);
-                using (Stream output = response.OutputStream)
-                {
-                    output.Write(buffer, 0, buffer.Length);
-                }
+                byte[] htmlBytes = Encoding.UTF8.GetBytes(notFoundMessage);
+                response.contentLength = htmlBytes.Length;
+                byte[] headerBytes = Encoding.UTF8.GetBytes(response.GetResponseHeaders());
+
+                //Armamos el buffer a mandar
+                byte[] bytesToSend = new byte[htmlBytes.Length + headerBytes.Length];
+                System.Buffer.BlockCopy(headerBytes, 0, bytesToSend, 0, headerBytes.Length);
+                System.Buffer.BlockCopy(htmlBytes, 0, bytesToSend, headerBytes.Length, htmlBytes.Length);
+
+                await handler.SendAsync(bytesToSend, 0);
+                handler.Close();
             }
-            response.Close();
         }
         public static async Task StartServer()
         {
@@ -132,8 +129,10 @@ namespace TPHttpServer
                     {
                         case "GET":
                             //Comportamiento GET
+                            Console.WriteLine("GET RECEIVED");
                             Action GetAction = new Action(() => GetRequestHandler(req,handler));
                             Task.Run(GetAction);
+
                             break;
                         case "POST":
                             break;
@@ -141,46 +140,6 @@ namespace TPHttpServer
                             break;
                     }
                 }
-/* 
-
-                // Peel out the requests and response objects
-                HttpListenerRequest req = ctx.Request;
-                HttpListenerResponse resp = ctx.Response;
-
-                // Print out some info about the request
-                Console.WriteLine(req.Url.ToString());
-                Console.WriteLine(req.HttpMethod);
-                Console.WriteLine(req.UserHostName);
-                Console.WriteLine(req.UserAgent);
-                Console.WriteLine();
-
-                // If `shutdown` url requested w/ POST, then shutdown the server after serving the page
-                if ((req.HttpMethod == "POST"))
-                {
-                    //COMPORTAMIENTO POST
-                    Console.WriteLine("Se ha recibido una solicitud HTTP del tipo POST");
-                }
-                else if ((req.HttpMethod == "GET"))
-                {
-                    //COMPORTAMIENTO GET
-                    Action GetAction = new Action(() => GetRequestHandler(req, resp));
-                    Task.Run(GetAction);
-                }
-                else
-                {
-                    Console.WriteLine("Request type not supported: {0}", req.HttpMethod);
-
-                }
-
-                // Write the response info
-                byte[] data = Encoding.UTF8.GetBytes(String.Format("etc"));
-                resp.ContentType = "text/html";
-                resp.ContentEncoding = Encoding.UTF8;
-                resp.ContentLength64 = data.LongLength;
-
-                // Write out to the response stream (asynchronously), then close it
-                await resp.OutputStream.WriteAsync(data, 0, data.Length);
-                resp.Close(); */
             }
         }
 

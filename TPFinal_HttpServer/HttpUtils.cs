@@ -55,6 +55,7 @@ namespace TPHttpServer
         public int statusCode = 200;
         public static string httpOk = "HTTP/1.1 200 OK";
         public static string http404 = "HTTP/1.1 404 Not Found";
+        public int contentLength = 0;
 
         public string GetResponseHeaders()
         {
@@ -68,7 +69,7 @@ namespace TPHttpServer
                     firstLine = http404;
                     break;
             }
-            return $"{firstLine}\nContent-Type: {contentType}\n";
+            return $"{firstLine}\r\nContent-Length: {contentLength}\r\nContent-Type: {contentType}\r\n\r\n";
         }
     }
 }
