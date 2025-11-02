@@ -18,7 +18,7 @@ namespace TPHttpServer
 
         private static Logger logger;
 
-        public static async void GetRequestHandler(HttpReq request, Socket handler)
+        public static void GetRequestHandler(HttpReq request, Socket handler)
         {
             HttpResp response = new HttpResp();
 
@@ -76,7 +76,7 @@ namespace TPHttpServer
                 System.Buffer.BlockCopy(headerBytes, 0, bytesToSend, 0, headerBytes.Length);
                 System.Buffer.BlockCopy(fileBytes, 0, bytesToSend, headerBytes.Length, fileBytes.Length);
 
-                await handler.SendAsync(bytesToSend, 0);
+                handler.Send(bytesToSend, 0);
                 handler.Close();
                
             }
@@ -109,7 +109,7 @@ namespace TPHttpServer
                 System.Buffer.BlockCopy(headerBytes, 0, bytesToSend, 0, headerBytes.Length);
                 System.Buffer.BlockCopy(htmlBytes, 0, bytesToSend, headerBytes.Length, htmlBytes.Length);
 
-                await handler.SendAsync(bytesToSend, 0);
+                handler.Send(bytesToSend, 0);
                 handler.Close();
             }
         }
