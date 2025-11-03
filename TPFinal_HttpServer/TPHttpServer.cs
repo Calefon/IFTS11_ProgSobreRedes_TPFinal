@@ -18,7 +18,7 @@ namespace TPHttpServer
 
         private static Logger logger;
 
-        public static void GetRequestHandler(HttpReq request, Socket handler)
+        public static async Task GetRequestHandler(HttpReq request, Socket handler)
         {
             HttpResp response = new HttpResp();
 
@@ -76,7 +76,7 @@ namespace TPHttpServer
                 System.Buffer.BlockCopy(headerBytes, 0, bytesToSend, 0, headerBytes.Length);
                 System.Buffer.BlockCopy(fileBytes, 0, bytesToSend, headerBytes.Length, fileBytes.Length);
 
-                handler.Send(bytesToSend, 0);
+                await handler.SendAsync(bytesToSend, 0);
                 handler.Close();
                
             }
@@ -109,7 +109,7 @@ namespace TPHttpServer
                 System.Buffer.BlockCopy(headerBytes, 0, bytesToSend, 0, headerBytes.Length);
                 System.Buffer.BlockCopy(htmlBytes, 0, bytesToSend, headerBytes.Length, htmlBytes.Length);
 
-                handler.Send(bytesToSend, 0);
+                await handler.SendAsync(bytesToSend, 0);
                 handler.Close();
             }
         }
@@ -125,7 +125,7 @@ namespace TPHttpServer
             //Bindeamos y arrancamos la escucha
             listener.Bind(ipEndPoint);
             listener.Listen();
-            Console.WriteLine("Server a la escucha en {0}, en el puerto: {1}", IPAddress.Loopback, port);
+            Console.WriteLine("Server a la escucha en http://{0}:{1}", IPAddress.Loopback, port);
 
             bool runServer = true;
 
@@ -135,7 +135,7 @@ namespace TPHttpServer
                 Socket handler = await listener.AcceptAsync();
                 
 
-                var buffer = new byte[8192];
+                byte[] buffer = new byte[8192];
                 var bytesReceived = await handler.ReceiveAsync(buffer, SocketFlags.None);
                 var rawRequest = Encoding.UTF8.GetString(buffer, 0, bytesReceived);
 
