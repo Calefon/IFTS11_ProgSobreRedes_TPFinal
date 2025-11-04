@@ -18,101 +18,6 @@ namespace TPHttpServer
 
         private static Logger logger;
 
-        public static async Task GetRequestHandler(HttpReq request, Socket handler)
-        {
-            HttpResp response = new HttpResp();
-
-            //Conseguimos el filepath
-            string filePath = Path.Combine(serve_folder, request.httpUri.TrimStart('/'));
-
-            //Si es el root, devolvemos index
-            if (string.IsNullOrEmpty(request.httpUri) || request.httpUri == "/")
-            {
-                filePath = Path.Combine(serve_folder, "index.html");
-            }
-
-
-            // Check si el archivo existe
-            if (File.Exists(filePath))
-            {
-                
-                string fileExtension = Path.GetExtension(filePath).ToLower();
-                string contentType;
-
-                // Seteamos Content-Type según extension
-                switch (fileExtension)
-                {
-                    case ".html":
-                    case ".htm":
-                        contentType = "text/html";
-                        break;
-                    case ".css":
-                        contentType = "text/css";
-                        break;
-                    case ".js":
-                        contentType = "application/javascript";
-                        break;
-                    // Default para otros archivos (imagenes, etc.)
-                    default:
-                        contentType = "application/octet-stream";
-                        break;
-                }
-
-                response.contentType = contentType;
-                response.statusCode = 200;
-
-                // Leemos el archivo
-                byte[] fileBytes = File.ReadAllBytes(filePath);
-
-                // Lo comprimimos
-                fileBytes = Compressor.Compress(fileBytes);
-
-                response.contentLength = fileBytes.Length;
-
-                byte[] headerBytes = Encoding.UTF8.GetBytes(response.GetResponseHeaders());
-
-                //Armamos el buffer a mandar
-                byte[] bytesToSend = new byte[fileBytes.Length + headerBytes.Length];
-                System.Buffer.BlockCopy(headerBytes, 0, bytesToSend, 0, headerBytes.Length);
-                System.Buffer.BlockCopy(fileBytes, 0, bytesToSend, headerBytes.Length, fileBytes.Length);
-
-                await handler.SendAsync(bytesToSend, 0);
-                handler.Close();
-               
-            }
-            else
-            {
-
-                // Archivo no encontrado
-                response.statusCode = 404;
-                response.contentType = "text/html";
-                string notFoundMessage =
-                "<!DOCTYPE>" +
-            "<html>" +
-            "  <head>" +
-            "    <title>Server 404 - Not Found</title>" +
-            "  </head>" +
-            "  <body>" +
-            "    <h1>Resource not found in server</h1>" +
-            "  </body>" +
-            "</html>";
-
-                byte[] htmlBytes = Encoding.UTF8.GetBytes(notFoundMessage);
-
-                htmlBytes = Compressor.Compress(htmlBytes);
-
-                response.contentLength = htmlBytes.Length;
-                byte[] headerBytes = Encoding.UTF8.GetBytes(response.GetResponseHeaders());
-
-                //Armamos el buffer a mandar
-                byte[] bytesToSend = new byte[htmlBytes.Length + headerBytes.Length];
-                System.Buffer.BlockCopy(headerBytes, 0, bytesToSend, 0, headerBytes.Length);
-                System.Buffer.BlockCopy(htmlBytes, 0, bytesToSend, headerBytes.Length, htmlBytes.Length);
-
-                await handler.SendAsync(bytesToSend, 0);
-                handler.Close();
-            }
-        }
         public static async Task StartServer()
         {
 
@@ -165,6 +70,78 @@ namespace TPHttpServer
                 }
             }
         }
+
+        public static async Task GetRequestHandler(HttpReq request, Socket handler)
+        {
+            HttpResp response = new HttpResp();
+
+            //Conseguimos el filepath
+            string filePath = Path.Combine(serve_folder, request.httpUri.TrimStart('/'));
+
+            //Si es el root, devolvemos index
+            if (string.IsNullOrEmpty(request.httpUri) || request.httpUri == "/")
+            {
+                filePath = Path.Combine(serve_folder, "index.html");
+            }
+
+
+            // Check si el archivo existe
+            if (File.Exists(filePath))
+            {
+
+                string fileExtension = Path.GetExtension(filePath).ToLower();
+
+                // Seteamos Content-Type según extension
+                switch (fileExtension)
+                {
+                    case ".html":
+                    case ".htm":
+                        response.contentType = "text/html";
+                        break;
+                    case ".css":
+                        response.contentType = "text/css";
+                        break;
+                    case ".js":
+                        response.contentType = "application/javascript";
+                        break;
+                    // Default para otros archivos (imagenes, etc.)
+                    default:
+                        response.contentType = "application/octet-stream";
+                        break;
+                }
+                response.statusCode = 200;
+
+            }
+            else
+            {
+
+                // Archivo no encontrado
+                response.statusCode = 404;
+                response.contentType = "text/html";
+
+                //Cambiamos el filePath para que apunte al html de not-found
+                filePath = Path.Combine(serve_folder, "not-found.html");
+
+            }
+            // Leemos el archivo
+            byte[] fileBytes = File.ReadAllBytes(filePath);
+
+            // Lo comprimimos
+            fileBytes = Compressor.Compress(fileBytes);
+
+            response.contentLength = fileBytes.Length;
+
+            byte[] headerBytes = Encoding.UTF8.GetBytes(response.GetResponseHeaders());
+
+            //Armamos el buffer a mandar
+            byte[] bytesToSend = new byte[fileBytes.Length + headerBytes.Length];
+            System.Buffer.BlockCopy(headerBytes, 0, bytesToSend, 0, headerBytes.Length);
+            System.Buffer.BlockCopy(fileBytes, 0, bytesToSend, headerBytes.Length, fileBytes.Length);
+
+            await handler.SendAsync(bytesToSend, 0);
+            handler.Close();
+        }
+        
 
         public static void Main(string[] args)
         {
